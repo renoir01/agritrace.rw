@@ -12,33 +12,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Set up Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.5.4'
+        flutter-version: '3.24.3'
         channel: 'stable'
-
-    - name: Cache Flutter dependencies
-      uses: actions/cache@v3
-      with:
-        path: |
-          /opt/hostedtoolcache/flutter
-          ${{ runner.tool_cache }}/flutter
-        key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-flutter-
+        cache: true
 
     - name: Install dependencies
       run: |
         cd mobile
         flutter pub get
-
-    - name: Check Flutter version
-      run: |
-        flutter --version
-        flutter doctor -v
 
     - name: Run Flutter analyze
       run: |
@@ -48,7 +34,7 @@ jobs:
     - name: Run Flutter tests
       run: |
         cd mobile
-        flutter test --coverage || flutter test
+        flutter test
 
     - name: Build Android APK
       run: |
@@ -67,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
@@ -89,13 +75,14 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Set up Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.5.4'
+        flutter-version: '3.24.3'
         channel: 'stable'
+        cache: true
 
     - name: Build Android APK for deployment
       run: |
