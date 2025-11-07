@@ -81,7 +81,9 @@ jobs:
         output: 'trivy-results.sarif'
 
     - name: Upload Trivy results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v2
+      uses: github/codeql-action/upload-sarif@v3
+      if: success()
+      continue-on-error: true
       with:
         sarif_file: 'trivy-results.sarif'
 
@@ -118,21 +120,11 @@ jobs:
         cd mobile
         flutter build apk --debug --no-tree-shake-icons
 
-    - name: Create release archive
-      run: |
-        mkdir -p release
-        cp mobile/build/app/outputs/flutter-apk/app-debug.apk release/
-        cp README.md release/
-        cp FIREBASE_CONSOLE_SETUP.md release/
-        cp -r screenshots/ release/
-
     - name: Create GitHub Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
         tag_name: v${{ github.run_number }}
-        release_name: AgriTrace Mobile v${{ github.run_number }}
+        name: AgriTrace Mobile v${{ github.run_number }}
         body: |
           ## AgriTrace Mobile Release
 
@@ -153,13 +145,5 @@ jobs:
           - Internet connection for Firebase services
         draft: false
         prerelease: false
-
-    - name: Upload APK to Release
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: mobile/build/app/outputs/flutter-apk/app-debug.apk
-        asset_name: agritrace.apk
-        asset_content_type: application/vnd.android.package-archive
+        files: |
+          mobile/build/app/outputs/flutter-apk/app-debug.apk
