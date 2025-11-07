@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "33434653243",
+    "project_id": "agritrace-rw",
+    "storage_bucket": "agritrace-rw.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:33434653243:android:c5a44a18aa4c438638821e",
+        "android_client_info": {
+          "package_name": "rw.agritrace.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "33434653243-maaje8emq4p2uvgpphq1a77ou1kfl8hn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyATCiVkg96ZjW2waUGn_h8EqXW5DHxp-Oc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "33434653243-maaje8emq4p2uvgpphq1a77ou1kfl8hn.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

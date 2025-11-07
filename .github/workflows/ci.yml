@@ -7,158 +7,63 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  backend-tests:
-    name: Backend Tests
+  mobile-tests:
+    name: Mobile App Tests
     runs-on: ubuntu-latest
-    
-    services:
-      postgres:
-        image: postgres:13
-        env:
-          POSTGRES_DB: agritrace_test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-      
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-    
-    - name: Cache pip packages
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    
-    - name: Install dependencies
-      run: |
-        cd backend
-        pip install -r requirements.txt
-    
-    - name: Run migrations
-      env:
-        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/agritrace_test
-        SECRET_KEY: test-secret-key
-        DEBUG: True
-      run: |
-        cd backend
-        python manage.py migrate
-    
-    - name: Run tests
-      env:
-        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/agritrace_test
-        SECRET_KEY: test-secret-key
-        DEBUG: True
-      run: |
-        cd backend
-        python manage.py test
-    
-    - name: Run linting
-      run: |
-        cd backend
-        pip install flake8
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-  frontend-tests:
-    name: Frontend Tests
-    runs-on: ubuntu-latest
-    
     steps:
     - uses: actions/checkout@v3
-    
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '16'
-    
-    - name: Cache node modules
-      uses: actions/cache@v3
-      with:
-        path: frontend/node_modules
-        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-node-
-    
-    - name: Install dependencies
-      run: |
-        cd frontend
-        npm ci
-    
-    - name: Run tests
-      run: |
-        cd frontend
-        npm test -- --coverage --watchAll=false
-    
-    - name: Run linting
-      run: |
-        cd frontend
-        npm run lint || true
 
-  blockchain-tests:
-    name: Blockchain Tests
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
       with:
-        node-version: '16'
-    
-    - name: Cache node modules
+        flutter-version: '3.5.4'
+        channel: 'stable'
+
+    - name: Cache Flutter dependencies
       uses: actions/cache@v3
       with:
-        path: blockchain/node_modules
-        key: ${{ runner.os }}-blockchain-${{ hashFiles('**/package-lock.json') }}
+        path: |
+          /opt/hostedtoolcache/flutter
+          ${{ runner.tool_cache }}/flutter
+        key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}
         restore-keys: |
-          ${{ runner.os }}-blockchain-
-    
+          ${{ runner.os }}-flutter-
+
     - name: Install dependencies
       run: |
-        cd blockchain
-        npm ci
-    
-    - name: Compile contracts
+        cd mobile
+        flutter pub get
+
+    - name: Run Flutter analyze
       run: |
-        cd blockchain
-        npx truffle compile
-    
-    - name: Run tests
+        cd mobile
+        flutter analyze
+
+    - name: Run Flutter tests
       run: |
-        cd blockchain
-        npx truffle test
+        cd mobile
+        flutter test --coverage
+
+    - name: Build Android APK
+      run: |
+        cd mobile
+        flutter build apk --release
+
+    - name: Upload test coverage
+      uses: codecov/codecov-action@v3
+      with:
+        file: mobile/coverage/lcov.info
+        flags: mobile
+        name: mobile-coverage
 
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
@@ -166,29 +71,74 @@ jobs:
         scan-ref: '.'
         format: 'sarif'
         output: 'trivy-results.sarif'
-    
+
     - name: Upload Trivy results to GitHub Security tab
       uses: github/codeql-action/upload-sarif@v2
       with:
         sarif_file: 'trivy-results.sarif'
 
-  build-docker:
-    name: Build Docker Images
+  deploy-mobile:
+    name: Deploy Mobile Build
     runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-tests, blockchain-tests]
-    
+    needs: [mobile-tests]
+    if: github.ref == 'refs/heads/main'
+
     steps:
     - uses: actions/checkout@v3
-    
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-    
-    - name: Build backend image
+
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.5.4'
+        channel: 'stable'
+
+    - name: Build Android APK for deployment
       run: |
-        cd backend
-        docker build -t agritrace-backend:${{ github.sha }} .
-    
-    - name: Build frontend image
+        cd mobile
+        flutter build apk --release
+
+    - name: Create release archive
       run: |
-        cd frontend
-        docker build -t agritrace-frontend:${{ github.sha }} .
+        mkdir -p release
+        cp mobile/build/app/outputs/flutter-apk/app-release.apk release/
+        cp README.md release/
+        cp FIREBASE_CONSOLE_SETUP.md release/
+        cp -r screenshots/ release/
+
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ github.run_number }}
+        release_name: AgriTrace Mobile v${{ github.run_number }}
+        body: |
+          ## AgriTrace Mobile Release
+
+          Automated build of the AgriTrace mobile application.
+
+          ### What's included:
+          - ✅ Android APK (agritrace.apk)
+          - ✅ Setup documentation
+          - ✅ Screenshots
+
+          ### Installation:
+          1. Download `agritrace.apk`
+          2. Enable "Install from Unknown Sources" on Android
+          3. Install and run the app
+
+          ### Requirements:
+          - Android 5.0+ (API 23+)
+          - Internet connection for Firebase services
+        draft: false
+        prerelease: false
+
+    - name: Upload APK to Release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: mobile/build/app/outputs/flutter-apk/app-release.apk
+        asset_name: agritrace.apk
+        asset_content_type: application/vnd.android.package-archive
