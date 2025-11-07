@@ -1,14 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/seed_producer_model.dart';
-import '../models/agro_dealer_model.dart';
-import '../models/farmer_model.dart';
-import '../models/aggregator_model.dart';
-import '../models/consumer_model.dart';
-import '../models/user_model.dart';
-import '../models/order_model.dart';
-import '../models/seed_batch_model.dart';
-import '../models/payment_model.dart';
-import '../utils/constants.dart';
+import '../models/cooperative_model.dart';
+import '../models/institution_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -1066,6 +1058,130 @@ class FirestoreService {
       });
     } catch (e) {
       throw Exception('Failed to update order status: $e');
+    }
+  }
+
+  // ========== COOPERATIVES ==========
+
+  Future<String> createCooperative(CooperativeModel cooperative) async {
+    try {
+      final docRef = await _firestore.collection('cooperatives').add(cooperative.toMap());
+      return docRef.id;
+    } catch (e) {
+      throw Exception('Failed to create cooperative: $e');
+    }
+  }
+
+  Future<CooperativeModel?> getCooperative(String id) async {
+    try {
+      final doc = await _firestore.collection('cooperatives').doc(id).get();
+      if (doc.exists) {
+        return CooperativeModel.fromFirestore(doc);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to get cooperative: $e');
+    }
+  }
+
+  Future<CooperativeModel?> getCooperativeByUserId(String userId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('cooperatives')
+          .where('userId', isEqualTo: userId)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        return CooperativeModel.fromFirestore(snapshot.docs.first);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to get cooperative by user ID: $e');
+    }
+  }
+
+  Future<void> updateCooperative(CooperativeModel cooperative) async {
+    try {
+      await _firestore.collection('cooperatives').doc(cooperative.id).update(cooperative.toMap());
+    } catch (e) {
+      throw Exception('Failed to update cooperative: $e');
+    }
+  }
+
+  Future<List<CooperativeModel>> getAllCooperativesOnce() async {
+    try {
+      final snapshot = await _firestore.collection('cooperatives').get();
+      return snapshot.docs.map((doc) => CooperativeModel.fromFirestore(doc)).toList();
+    } catch (e) {
+      throw Exception('Failed to get cooperatives: $e');
+    }
+  }
+
+  Stream<List<CooperativeModel>> getAvailableCooperatives() {
+    return _firestore
+        .collection('cooperatives')
+        .where('isActive', isEqualTo: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => CooperativeModel.fromFirestore(doc))
+            .toList());
+  }
+
+  // ========== INSTITUTIONS ==========
+
+  Future<String> createInstitution(InstitutionModel institution) async {
+    try {
+      final docRef = await _firestore.collection('institutions').add(institution.toMap());
+      return docRef.id;
+    } catch (e) {
+      throw Exception('Failed to create institution: $e');
+    }
+  }
+
+  Future<InstitutionModel?> getInstitution(String id) async {
+    try {
+      final doc = await _firestore.collection('institutions').doc(id).get();
+      if (doc.exists) {
+        return InstitutionModel.fromFirestore(doc);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to get institution: $e');
+    }
+  }
+
+  Future<InstitutionModel?> getInstitutionByUserId(String userId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('institutions')
+          .where('userId', isEqualTo: userId)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        return InstitutionModel.fromFirestore(snapshot.docs.first);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to get institution by user ID: $e');
+    }
+  }
+
+  Future<void> updateInstitution(InstitutionModel institution) async {
+    try {
+      await _firestore.collection('institutions').doc(institution.id).update(institution.toMap());
+    } catch (e) {
+      throw Exception('Failed to update institution: $e');
+    }
+  }
+
+  Future<List<InstitutionModel>> getAllInstitutionsOnce() async {
+    try {
+      final snapshot = await _firestore.collection('institutions').get();
+      return snapshot.docs.map((doc) => InstitutionModel.fromFirestore(doc)).toList();
+    } catch (e) {
+      throw Exception('Failed to get institutions: $e');
     }
   }
 }

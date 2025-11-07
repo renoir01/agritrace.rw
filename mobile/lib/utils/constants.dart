@@ -25,6 +25,10 @@ class AppConstants {
   static const String farmerType = 'farmer';
   static const String aggregatorType = 'aggregator';
   static const String consumerType = 'consumer';
+  static const String cooperativeType = 'cooperative';
+  static const String institutionType = 'institution';
+  static const String schoolType = 'school';
+  static const String hospitalType = 'hospital';
   
   // Order Status
   static const String orderPending = 'pending';
