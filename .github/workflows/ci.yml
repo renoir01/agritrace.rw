@@ -14,6 +14,12 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
     - name: Set up Flutter
       uses: subosito/flutter-action@v2
       with:
@@ -21,10 +27,19 @@ jobs:
         channel: 'stable'
         cache: true
 
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Accept Android licenses
+      run: flutter doctor --android-licenses
+
+    - name: Check Flutter environment
+      run: flutter doctor -v
+
     - name: Install dependencies
       run: |
         cd mobile
-        flutter pub get
+        flutter pub get --timeout=300
 
     - name: Run Flutter analyze
       run: |
@@ -77,12 +92,24 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
     - name: Set up Flutter
       uses: subosito/flutter-action@v2
       with:
         flutter-version: '3.24.3'
         channel: 'stable'
         cache: true
+
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Accept Android licenses
+      run: flutter doctor --android-licenses
 
     - name: Build Android APK for deployment
       run: |
